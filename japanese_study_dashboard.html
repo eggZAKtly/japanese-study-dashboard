@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日本語 Study Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: rgba(255,255,255,0.07);
+    --text: #f0ede8;
+    --muted: #666;
+    --accent: #e8d5a3;
+    --green: #4ade9a;
+    --purple: #a78bfa;
+    --blue: #60a5fa;
+    --orange: #fb923c;
+    --pink: #f472b6;
+    --red: #f87171;
+    --yellow: #facc15;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .header {
+    padding: 2.5rem 3rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+
+  .header-left h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .header-left h1 span {
+    color: var(--accent);
+  }
+
+  .header-sub {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 6px;
+    font-weight: 400;
+    font-family: 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .phase-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.6rem 1rem;
+    font-size: 0.75rem;
+    color: var(--accent);
+    text-align: right;
+    letter-spacing: 0.05em;
+  }
+
+  .phase-badge strong {
+    display: block;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  .main {
+    padding: 2rem 3rem 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent-color, var(--accent));
+    opacity: 0.6;
+  }
+
+  .stat-label {
+    font-size: 0.68rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  .stat-sub {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+  }
+
+  .card-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 1.25rem;
+    font-weight: 500;
+  }
+
+  .chart-wrap {
+    position: relative;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 1rem;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.68rem;
+    color: var(--muted);
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* Heatmap */
+  .heatmap-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .heatmap-row {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .heatmap-day-label {
+    font-size: 0.6rem;
+    color: var(--muted);
+    width: 20px;
+    text-align: right;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+
+  .heatmap-cell {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    cursor: default;
+    transition: opacity 0.2s;
+    flex-shrink: 0;
+  }
+
+  .heatmap-cell:hover { opacity: 0.75; }
+
+  .heatmap-months {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 4px;
+    padding-left: 24px;
+  }
+
+  .heatmap-month-label {
+    font-size: 0.6rem;
+    color: var(--muted);
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+
+  .heat-legend {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 10px;
+    font-size: 0.65rem;
+    color: var(--muted);
+  }
+
+  .heat-legend-cell {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+
+  /* Progress bar */
+  .progress-section {
+    margin-bottom: 1.25rem;
+  }
+
+  .progress-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .progress-label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    width: 110px;
+    flex-shrink: 0;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+
+  .progress-bar-wrap {
+    flex: 1;
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1s ease;
+  }
+
+  .progress-pct {
+    font-size: 0.7rem;
+    color: var(--muted);
+    width: 35px;
+    text-align: right;
+    font-weight: 500;
+  }
+
+  /* Target line */
+  .target-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+
+  .target-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Loading */
+  .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: 1rem;
+  }
+
+  .loading-text {
+    font-size: 0.8rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg {
+    background: var(--surface);
+    border: 1px solid rgba(248,113,113,0.3);
+    border-radius: 10px;
+    padding: 1.5rem;
+    color: var(--red);
+    font-size: 0.85rem;
+    font-family: 'Noto Sans JP', sans-serif;
+    line-height: 1.6;
+  }
+
+  .error-msg code {
+    background: var(--surface2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: var(--accent);
+  }
+
+  .api-key-form {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 2rem;
+    max-width: 500px;
+    margin: 3rem auto;
+  }
+
+  .api-key-form h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
+  }
+
+  .api-key-form p {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 1.25rem;
+    font-family: 'Noto Sans JP', sans-serif;
+    line-height: 1.6;
+  }
+
+  .api-key-form input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .api-key-form input:focus { border-color: rgba(232,213,163,0.4); }
+
+  .api-key-form button {
+    background: var(--accent);
+    color: #0a0a0a;
+    border: none;
+    border-radius: 6px;
+    padding: 0.75rem 1.5rem;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: opacity 0.2s;
+  }
+
+  .api-key-form button:hover { opacity: 0.85; }
+
+  .timestamp {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-align: right;
+    margin-top: -1rem;
+    font-family: 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.05em;
+  }
+
+  /* N3 countdown */
+  .countdown {
+    background: linear-gradient(135deg, #1a1400 0%, #111 100%);
+    border: 1px solid rgba(232,213,163,0.15);
+    border-radius: 10px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+
+  .countdown-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 4px;
+    opacity: 0.7;
+  }
+
+  .countdown-value {
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .countdown-sub {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 2px;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+
+  .countdown-right {
+    text-align: right;
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="loading">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loading-msg">Initialising...</div>
+  </div>
+</div>
+
+<script>
+const NOTION_DS_ID = "64bd70f4-b620-4fb6-ad3c-8542ccf2a0e3";
+const EXAM_DATE = new Date("2027-07-06");
+const WEEKLY_TARGET = 750;
+
+const CAT_COLORS = {
+  "Grammar (Textbook)": "#4ade9a",
+  "Kanji": "#a78bfa",
+  "SRS (Anki/Flashcards)": "#60a5fa",
+  "Listening/Watching": "#fb923c",
+  "Output (Speaking/Writing)": "#f472b6",
+  "Reading (Immersion)": "#facc15",
+  "Mock Test": "#f87171",
+  "General": "#555"
+};
+
+const CAT_SHORT = {
+  "Grammar (Textbook)": "Grammar",
+  "Kanji": "Kanji",
+  "SRS (Anki/Flashcards)": "SRS / Anki",
+  "Listening/Watching": "Listening",
+  "Output (Speaking/Writing)": "Output",
+  "Reading (Immersion)": "Reading",
+  "Mock Test": "Mock Test",
+  "General": "General"
+};
+
+function getApiKey() {
+  return localStorage.getItem("anthropic_api_key") || "";
+}
+
+function saveApiKey(key) {
+  localStorage.setItem("anthropic_api_key", key);
+}
+
+function setLoading(msg) {
+  document.getElementById("loading-msg").textContent = msg;
+}
+
+async function fetchSessions(apiKey) {
+  setLoading("Querying Notion database...");
+  const prompt = `Query the Notion Study Hours Log database (data source ID: ${NOTION_DS_ID}) and return ALL session entries as a JSON array. Each entry must have: date (YYYY-MM-DD from the Date field), subject (string, the Subject field value), duration (number, the "Duration (min)" field value). Return ONLY a valid JSON array with no markdown formatting, no code blocks, no explanation. If there are no entries return []. Example format: [{"date":"2026-05-11","subject":"Grammar (Textbook)","duration":55},{"date":"2026-05-11","subject":"Kanji","duration":12}]`;
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-beta": "mcp-client-2025-04-04" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 2000,
+      mcp_servers: [{ type: "url", url: "https://mcp.notion.com/mcp", name: "notion" }],
+      messages: [{ role: "user", content: prompt }]
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `API error ${res.status}`);
+  }
+
+  const data = await res.json();
+  const textBlocks = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+  const clean = textBlocks.replace(/```json|```/g, "").trim();
+  const start = clean.indexOf("[");
+  const end = clean.lastIndexOf("]");
+  if (start === -1) return [];
+  return JSON.parse(clean.slice(start, end + 1));
+}
+
+function processData(sessions) {
+  const byDate = {};
+  const byCat = {};
+  const byDateCat = {};
+  let totalMins = 0;
+
+  sessions.forEach(s => {
+    if (!s.date || s.duration === undefined || s.duration === null) return;
+    const d = s.date.slice(0, 10);
+    const dur = Number(s.duration) || 0;
+    const subj = s.subject || "General";
+    byDate[d] = (byDate[d] || 0) + dur;
+    byCat[subj] = (byCat[subj] || 0) + dur;
+    if (!byDateCat[d]) byDateCat[d] = {};
+    byDateCat[d][subj] = (byDateCat[d][subj] || 0) + dur;
+    totalMins += dur;
+  });
+
+  const sortedDates = Object.keys(byDate).sort();
+  const uniqueDays = sortedDates.length;
+  const avgMins = uniqueDays ? Math.round(totalMins / uniqueDays) : 0;
+
+  const now = new Date();
+  const mon = new Date(now);
+  mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const weekKey = mon.toISOString().slice(0, 10);
+  let weekMins = 0;
+  Object.entries(byDate).forEach(([d, m]) => { if (d >= weekKey) weekMins += m; });
+
+  const daysToExam = Math.ceil((EXAM_DATE - now) / (1000 * 60 * 60 * 24));
+
+  return { byDate, byCat, byDateCat, sortedDates, totalMins, uniqueDays, avgMins, weekMins, daysToExam };
+}
+
+function heatColor(mins) {
+  if (!mins) return "#1a1a1a";
+  if (mins < 45) return "#0f3d26";
+  if (mins < 90) return "#166534";
+  if (mins < 150) return "#16a34a";
+  return "#4ade9a";
+}
+
+function buildHeatmap(byDate, container) {
+  if (!Object.keys(byDate).length) return;
+  
+  const firstDate = new Date(Object.keys(byDate).sort()[0]);
+  const startOfWeek = new Date(firstDate);
+  startOfWeek.setDate(firstDate.getDate() - firstDate.getDay());
+  
+  const today = new Date();
+  const endOfWeek = new Date(today);
+  endOfWeek.setDate(today.getDate() + (6 - today.getDay()));
+
+  const weeks = [];
+  let current = new Date(startOfWeek);
+  while (current <= endOfWeek) {
+    const week = [];
+    for (let i = 0; i < 7; i++) {
+      week.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+    weeks.push(week);
+  }
+
+  const dayLabels = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+  const grid = document.createElement("div");
+  grid.style.cssText = "display:flex; gap:4px; overflow-x:auto;";
+
+  weeks.forEach(week => {
+    const col = document.createElement("div");
+    col.style.cssText = "display:flex; flex-direction:column; gap:4px;";
+    week.forEach(day => {
+      const key = day.toISOString().slice(0, 10);
+      const mins = byDate[key] || 0;
+      const cell = document.createElement("div");
+      cell.className = "heatmap-cell";
+      cell.style.background = heatColor(mins);
+      cell.title = `${key}: ${mins} min`;
+      col.appendChild(cell);
+    });
+    grid.appendChild(col);
+  });
+
+  container.appendChild(grid);
+
+  const legend = document.createElement("div");
+  legend.className = "heat-legend";
+  legend.innerHTML = `<span>Less</span>
+    <div class="heat-legend-cell" style="background:#1a1a1a;"></div>
+    <div class="heat-legend-cell" style="background:#0f3d26;"></div>
+    <div class="heat-legend-cell" style="background:#166534;"></div>
+    <div class="heat-legend-cell" style="background:#16a34a;"></div>
+    <div class="heat-legend-cell" style="background:#4ade9a;"></div>
+    <span>More</span>`;
+  container.appendChild(legend);
+}
+
+function renderDashboard(sessions) {
+  const d = processData(sessions);
+  const { byDate, byCat, byDateCat, sortedDates, totalMins, uniqueDays, avgMins, weekMins, daysToExam } = d;
+
+  const weekPct = Math.min(100, Math.round((weekMins / WEEKLY_TARGET) * 100));
+  const totalHours = (totalMins / 60).toFixed(1);
+  const weekHours = (weekMins / 60).toFixed(1);
+  const avgDisplay = avgMins >= 60 ? `${(avgMins/60).toFixed(1)}h` : `${avgMins}m`;
+
+  const activeCats = Object.keys(CAT_COLORS).filter(c => byCat[c]);
+
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <div class="header">
+      <div class="header-left">
+        <h1>日本語 <span>Study</span></h1>
+        <div class="header-sub">N3 Journey · Phase 1 · Foundation</div>
+      </div>
+      <div class="phase-badge">
+        JLPT N3 TARGET<br>
+        <strong>July 6, 2027</strong>
+      </div>
+    </div>
+
+    <div class="main">
+
+      <div class="countdown">
+        <div>
+          <div class="countdown-label">Days to exam</div>
+          <div class="countdown-value">${daysToExam}</div>
+          <div class="countdown-sub">days remaining</div>
+        </div>
+        <div style="flex:1; padding: 0 2rem;">
+          <div style="font-size:0.65rem; text-transform:uppercase; letter-spacing:0.12em; color:rgba(232,213,163,0.5); margin-bottom:8px;">This week vs target (${WEEKLY_TARGET} min)</div>
+          <div style="background: rgba(255,255,255,0.05); border-radius:4px; height:8px; overflow:hidden;">
+            <div style="height:100%; width:${weekPct}%; background:var(--accent); border-radius:4px; transition: width 1s ease;"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-top:5px; font-size:0.65rem; color:rgba(232,213,163,0.5);">
+            <span>${weekMins} min logged</span>
+            <span>${weekPct}% of target</span>
+          </div>
+        </div>
+        <div class="countdown-right">
+          <div class="countdown-label">Hours logged</div>
+          <div class="countdown-value" style="font-size:2rem;">${totalHours}h</div>
+          <div class="countdown-sub">${uniqueDays} days studied</div>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card" style="--accent-color: var(--green);">
+          <div class="stat-label">Total hours</div>
+          <div class="stat-value">${totalHours}<span style="font-size:1rem; color:var(--muted);">h</span></div>
+          <div class="stat-sub">${totalMins} minutes</div>
+        </div>
+        <div class="stat-card" style="--accent-color: var(--purple);">
+          <div class="stat-label">Days studied</div>
+          <div class="stat-value">${uniqueDays}</div>
+          <div class="stat-sub">since May 10, 2026</div>
+        </div>
+        <div class="stat-card" style="--accent-color: var(--blue);">
+          <div class="stat-label">Daily average</div>
+          <div class="stat-value">${avgDisplay}</div>
+          <div class="stat-sub">target: 103–129 min</div>
+        </div>
+        <div class="stat-card" style="--accent-color: var(--orange);">
+          <div class="stat-label">This week</div>
+          <div class="stat-value">${weekHours}<span style="font-size:1rem; color:var(--muted);">h</span></div>
+          <div class="stat-sub">${weekPct}% of ${(WEEKLY_TARGET/60).toFixed(0)}h target</div>
+        </div>
+        <div class="stat-card" style="--accent-color: var(--accent);">
+          <div class="stat-label">Genki phase</div>
+          <div class="stat-value" style="font-size:1.4rem;">Ch.3</div>
+          <div class="stat-sub">第３課 · N4 Level</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Minutes by category — all time</div>
+          <div class="legend" id="cat-legend"></div>
+          <div class="chart-wrap" style="height:220px;">
+            <canvas id="catChart" role="img" aria-label="Horizontal bar chart of total minutes per study category"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Category balance</div>
+          <div class="progress-section" id="progress-bars"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Daily breakdown — minutes per category</div>
+        <div class="legend" id="daily-legend"></div>
+        <div class="chart-wrap" style="height:200px;">
+          <canvas id="dailyChart" role="img" aria-label="Stacked bar chart of daily study minutes by category"></canvas>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Cumulative hours</div>
+          <div class="chart-wrap" style="height:180px;">
+            <canvas id="cumulChart" role="img" aria-label="Line chart of cumulative study hours"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Activity heatmap</div>
+          <div id="heatmap-container"></div>
+        </div>
+      </div>
+
+      <div class="timestamp" id="timestamp"></div>
+    </div>
+  `;
+
+  document.getElementById("timestamp").textContent = "Last synced from Notion: " + new Date().toLocaleString("en-JP");
+
+  const catLegend = document.getElementById("cat-legend");
+  const progressBars = document.getElementById("progress-bars");
+  const maxCatMins = Math.max(...activeCats.map(c => byCat[c] || 0));
+
+  activeCats.forEach(cat => {
+    const mins = byCat[cat] || 0;
+    const pct = Math.round((mins / maxCatMins) * 100);
+    const col = CAT_COLORS[cat];
+    const short = CAT_SHORT[cat] || cat;
+
+    const li = document.createElement("div");
+    li.className = "legend-item";
+    li.innerHTML = `<div class="legend-dot" style="background:${col};"></div>${short} ${mins}m`;
+    catLegend.appendChild(li);
+
+    const row = document.createElement("div");
+    row.className = "progress-row";
+    row.innerHTML = `
+      <div class="progress-label">${short}</div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" style="width:0%; background:${col};" data-target="${pct}"></div>
+      </div>
+      <div class="progress-pct">${Math.round(mins/60*10)/10}h</div>`;
+    progressBars.appendChild(row);
+  });
+
+  setTimeout(() => {
+    document.querySelectorAll(".progress-bar-fill").forEach(el => {
+      el.style.width = el.dataset.target + "%";
+    });
+  }, 100);
+
+  new Chart(document.getElementById("catChart"), {
+    type: "bar",
+    data: {
+      labels: activeCats.map(c => CAT_SHORT[c] || c),
+      datasets: [{ data: activeCats.map(c => Math.round(byCat[c] || 0)), backgroundColor: activeCats.map(c => CAT_COLORS[c]), borderRadius: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: "y",
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.raw} min (${(ctx.raw/60).toFixed(1)}h)` } } },
+      scales: {
+        x: { grid: { color: "rgba(255,255,255,0.04)" }, ticks: { color: "#555", font: { size: 11, family: "Syne" } } },
+        y: { grid: { display: false }, ticks: { color: "#888", font: { size: 11, family: "Syne" } } }
+      }
+    }
+  });
+
+  const dailyLegend = document.getElementById("daily-legend");
+  activeCats.forEach(cat => {
+    const li = document.createElement("div");
+    li.className = "legend-item";
+    li.innerHTML = `<div class="legend-dot" style="background:${CAT_COLORS[cat]};"></div>${CAT_SHORT[cat]}`;
+    dailyLegend.appendChild(li);
+  });
+
+  const dailyDatasets = activeCats.map(cat => ({
+    label: CAT_SHORT[cat],
+    data: sortedDates.map(d => Math.round((byDateCat[d] && byDateCat[d][cat]) || 0)),
+    backgroundColor: CAT_COLORS[cat],
+    borderRadius: 2,
+    stack: "stack"
+  }));
+
+  new Chart(document.getElementById("dailyChart"), {
+    type: "bar",
+    data: { labels: sortedDates.map(d => d.slice(5)), datasets: dailyDatasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { color: "#555", font: { size: 10, family: "Syne" }, maxRotation: 45, autoSkip: false } },
+        y: { stacked: true, grid: { color: "rgba(255,255,255,0.04)" }, ticks: { color: "#555", font: { size: 11, family: "Syne" } } }
+      }
+    }
+  });
+
+  let cumul = 0;
+  const cumulData = sortedDates.map(d => { cumul += (byDate[d] || 0) / 60; return Math.round(cumul * 10) / 10; });
+
+  new Chart(document.getElementById("cumulChart"), {
+    type: "line",
+    data: {
+      labels: sortedDates.map(d => d.slice(5)),
+      datasets: [{
+        data: cumulData,
+        borderColor: "#e8d5a3",
+        backgroundColor: "rgba(232,213,163,0.06)",
+        fill: true, tension: 0.4,
+        pointRadius: 3,
+        pointBackgroundColor: "#e8d5a3",
+        borderWidth: 1.5
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: "#555", font: { size: 10, family: "Syne" }, maxRotation: 45, autoSkip: false } },
+        y: { grid: { color: "rgba(255,255,255,0.04)" }, ticks: { color: "#555", font: { size: 11, family: "Syne" }, callback: v => v + "h" } }
+      }
+    }
+  });
+
+  buildHeatmap(byDate, document.getElementById("heatmap-container"));
+}
+
+function showApiKeyForm(errorMsg) {
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <div class="main">
+      ${errorMsg ? `<div class="error-msg">${errorMsg}</div>` : ""}
+      <div class="api-key-form">
+        <h2>Enter your Anthropic API key</h2>
+        <p>This dashboard pulls live data from your Notion database via the Anthropic API. Your key is stored locally in your browser and never sent anywhere else. Get your key from <a href="https://console.anthropic.com" style="color:var(--accent);">console.anthropic.com</a>.</p>
+        <input type="password" id="api-key-input" placeholder="sk-ant-..." value="${getApiKey()}" />
+        <button onclick="tryLoad()">Load dashboard →</button>
+      </div>
+    </div>`;
+}
+
+async function tryLoad() {
+  const input = document.getElementById("api-key-input");
+  const key = input ? input.value.trim() : getApiKey();
+  if (!key) { showApiKeyForm("Please enter your API key."); return; }
+  saveApiKey(key);
+
+  document.getElementById("app").innerHTML = `<div class="loading"><div class="spinner"></div><div class="loading-text" id="loading-msg">Connecting to Notion...</div></div>`;
+
+  try {
+    const sessions = await fetchSessions(key);
+    renderDashboard(sessions);
+  } catch (err) {
+    showApiKeyForm(`<strong>Error loading data:</strong> ${err.message}<br><br>Check your API key is correct and that your Notion MCP connection is active.`);
+  }
+}
+
+window.tryLoad = tryLoad;
+
+const savedKey = getApiKey();
+if (savedKey) {
+  tryLoad();
+} else {
+  showApiKeyForm();
+}
+</script>
+</body>
+</html>
